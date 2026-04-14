@@ -1,1 +1,1 @@
-web: python freshdesk_mcp.py 
+web: uvicorn freshdesk_mcp:app --host 0.0.0.0 --port $PORT
