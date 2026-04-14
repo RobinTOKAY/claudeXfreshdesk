@@ -1,2 +1,5 @@
-mcp[cli]
+mcp>=1.2.0
 requests
+uvicorn
+starlette
+anyio
