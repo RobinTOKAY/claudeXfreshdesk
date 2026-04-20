@@ -79,8 +79,8 @@ async def list_tools():
              description="Get full details of a ticket including conversation thread.",
              inputSchema={"type": "object", "properties": {"ticket_id": {"type": "integer"}}, "required": ["ticket_id"]}),
         Tool(name="reply_to_ticket",
-             description="Send a reply to a customer on a ticket.",
-             inputSchema={"type": "object", "properties": {"ticket_id": {"type": "integer"}, "body": {"type": "string"}}, "required": ["ticket_id", "body"]}),
+             description="Send a reply on a ticket. Set private=true to post an internal note (visible only to agents, NOT the customer). Default: public reply.",
+             inputSchema={"type": "object", "properties": {"ticket_id": {"type": "integer"}, "body": {"type": "string"}, "private": {"type": "boolean", "default": False, "description": "If true, post as a private note (agent-only). If false (default), send as a public reply to the customer."}}, "required": ["ticket_id", "body"]}),
         Tool(name="update_ticket",
              description="Update ticket status, priority, or assignee. Status: open/pending/resolved/closed. Priority: low/medium/high/urgent.",
              inputSchema={"type": "object", "properties": {"ticket_id": {"type": "integer"}, "status": {"type": "string"}, "priority": {"type": "string"}, "assignee_id": {"type": "integer"}}, "required": ["ticket_id"]}),
@@ -155,10 +155,17 @@ def _dispatch(name: str, args: dict) -> str:
                            "conversations": convs}, indent=2)
 
     elif name == "reply_to_ticket":
-        r = requests.post(f"{BASE_URL}/tickets/{args['ticket_id']}/reply",
-                          headers=_headers(), auth=_auth(), json={"body": args["body"]})
-        r.raise_for_status()
-        return json.dumps({"success": True, "message": f"Reply sent to ticket #{args['ticket_id']}."})
+        if args.get("private"):
+            r = requests.post(f"{BASE_URL}/tickets/{args['ticket_id']}/notes",
+                              headers=_headers(), auth=_auth(),
+                              json={"body": args["body"], "private": True})
+            r.raise_for_status()
+            return json.dumps({"success": True, "message": f"Private note added to ticket #{args['ticket_id']}."})
+        else:
+            r = requests.post(f"{BASE_URL}/tickets/{args['ticket_id']}/reply",
+                              headers=_headers(), auth=_auth(), json={"body": args["body"]})
+            r.raise_for_status()
+            return json.dumps({"success": True, "message": f"Reply sent to ticket #{args['ticket_id']}."})
 
     elif name == "update_ticket":
         payload = {}
